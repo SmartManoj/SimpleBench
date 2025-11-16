@@ -84,8 +84,17 @@ class LiteLLMModel(weave.Model):
                     "role": "user",
                     "content": prompt
                 })
+
                 # Use MODEL_MAP if available, otherwise use model_name directly
                 model_to_use = MODEL_MAP.get(self.model_name, self.model_name)
+
+                # For OpenRouter stealth models (no provider in path like openrouter/sherlock-dash-alpha),
+                # LiteLLM needs the format openrouter/openrouter/model-name
+                if (self.model_name.startswith("openrouter/") and
+                    "/" not in self.model_name[11:]):  # No provider after openrouter/
+                    # Double the openrouter prefix for LiteLLM
+                    model_to_use = "openrouter/" + self.model_name
+
                 response = await acompletion(
                     model=model_to_use,
                     messages=messages,
