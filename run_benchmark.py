@@ -59,10 +59,17 @@ def run_benchmark(
         python run_benchmark.py --model_name=gpt-4o-mini --dataset_path=simple_bench_public.json --num_responses=3
     """
 
-    if entity is not None:
+    # Check if WANDB_API_KEY is set, otherwise use a dummy key for offline mode
+    import os
+    if not os.getenv("WANDB_API_KEY"):
+        os.environ["WANDB_API_KEY"] = "dummy_key_for_offline"
+        os.environ["WANDB_MODE"] = "offline"
+
+    if entity is not None and entity != "":
         weave.init(f"{entity}/{project}")
     else:
-        weave.init(f"{project}")
+        # Use a default entity for offline mode
+        weave.init(f"offline/{project}")
 
     evaluation = weave.Evaluation(
         dataset=load_dataset(dataset_path),

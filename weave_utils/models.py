@@ -12,6 +12,10 @@ load_dotenv()
 
 from openai import RateLimitError
 
+# Handle OPENROUTER_LLM_KEY -> OPENROUTER_API_KEY mapping
+if os.getenv("OPENROUTER_LLM_KEY") and not os.getenv("OPENROUTER_API_KEY"):
+    os.environ["OPENROUTER_API_KEY"] = os.getenv("OPENROUTER_LLM_KEY")
+
 
 MODEL_MAP = {
     "gpt-4o-mini": "gpt-4o-mini",
@@ -54,10 +58,11 @@ class LiteLLMModel(weave.Model):
     def __init__(self, **data):
         super().__init__(**data)
         # Add any additional initialization logic here
-        if self.model_name not in MODEL_MAP:
+        # Allow openrouter models that aren't in MODEL_MAP
+        if self.model_name not in MODEL_MAP and not self.model_name.startswith("openrouter/"):
             raise ValueError(f"Invalid model name: {self.model_name}")
 
-        if "o1" in self.model_name: 
+        if "o1" in self.model_name:
             self.temp = None
             self.top_p = None
             self.max_tokens = None
@@ -79,8 +84,10 @@ class LiteLLMModel(weave.Model):
                     "role": "user",
                     "content": prompt
                 })
+                # Use MODEL_MAP if available, otherwise use model_name directly
+                model_to_use = MODEL_MAP.get(self.model_name, self.model_name)
                 response = await acompletion(
-                    model=MODEL_MAP[self.model_name],
+                    model=model_to_use,
                     messages=messages,
                     temperature=self.temp,
                     max_tokens=self.max_tokens,
